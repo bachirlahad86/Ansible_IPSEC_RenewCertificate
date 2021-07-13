@@ -20,11 +20,11 @@
 
     - name: Copy to file
       lineinfile:
-        line: "{{ inventory_hostname }}\t{{ item.split('10.243.31.254')[1] }}"
+        line: "{{ inventory_hostname }}\t{{ item.split('Tunnel_Hub_PrivateIP')[1] }}"
         insertafter: EOF
         path: "Tunnel_status.txt"
       delegate_to: localhost
       loop: "{{ int_dmvpn_raw.stdout_lines[0] }}"
-      when: '"185.29.36.209" in item'
+      when: '"Tunnel_Hub_PublicIP" in item'
       throttle: 1
       ignore_errors: True
