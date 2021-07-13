@@ -60,7 +60,7 @@
           prompt: '[yes/no]'
           answer: 'yes'
       loop: "{{ int_status_raw.stdout_lines[0] }}"
-      when: item.find('Trustpoint') != -1 and item.split(' ')[1].startswith("hub01")
+      when: item.find('Trustpoint') != -1 and item.split(' ')[1].startswith("hubxx")
       register: var1
       ignore_errors: True
 
@@ -68,14 +68,14 @@
         var: var1
 
 
-    - name: Create a new Trustpoint Hub01
+    - name: Create a new Trustpoint Hubxx
       cisco.ios.ios_config:
         lines:
-        - enrollment url http://hub01.dcinex.com:18263/certsrv/mscep/mscep.dll
+        - enrollment url http://hubxx.CA.com:18263/certsrv/mscep/mscep.dll
         - revocation-check crl none
         - auto-enroll 70
         - enrollment mode ra
-        parents: crypto pki trustpoint hub01.dcinex.com:18263
+        parents: crypto pki trustpoint hubxx.CA.com:18263
       register: var2
       ignore_errors: True
 
@@ -83,17 +83,17 @@
         var: var2
 
 
-    - name: Ping hub01.dcinex.com
+    - name: Ping hubxx.CA.com
       ios_command:
         commands:
-        - command: ping hub01.dcinex.com
+        - command: ping hubxx.CA.com
       ignore_errors: True
 #
-    - name: Authentication with New CA hub01.dcinex.com:18263
+    - name: Authentication with New CA hubxx.CA.com:18263
       ios_command:
         commands:
         - command: configure terminal
-        - command: crypto pki authenticate hub01.dcinex.com:18263
+        - command: crypto pki authenticate hubxx.CA.com:18263
           prompt: '[yes/no]'
           answer: 'yes'
       register: var3
