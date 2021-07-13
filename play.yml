@@ -1,0 +1,130 @@
+- name: DMVPN Automation
+  connection:  network_cli
+  gather_facts:  no
+  hosts:  all
+  serial: 50
+#  max_fail_percentage: 100
+  tasks:
+    - name: Gather Ansible Facts About Core
+      ios_facts:
+        gather_subset:
+        - all
+      register: first_command
+      ignore_errors: True
+
+    - name: Copy to file
+      lineinfile:
+        line: "{{ inventory_hostname }}"
+        insertafter: EOF
+        path: "Failed_Connections.txt"
+      delegate_to: localhost
+      when: first_command.msg is defined
+      throttle: 1
+
+
+    - debug:
+        var: ansible_facts['net_hostname']
+
+    - name: Backup Running Configuration
+      cisco.ios.ios_config:
+        backup: yes
+        backup_options:
+          filename: "RunningConfig_{{ ansible_facts['net_hostname'] }}.cfg"
+
+
+    - name: Shut the Tunnel 1
+      cisco.ios.ios_config:
+        lines:
+        - shutdown
+        parents: interface Tunnel 1
+      timeout:  180
+      register: var01
+
+    - debug:
+        var: var01
+
+
+    - name: show available trustpoints
+      ios_command:
+        commands:
+          - show crypto pki trustpoints
+      register: int_status_raw
+      timeout:  180
+      ignore_errors: True
+
+    - name: Delete non used crypto pki trustpoints
+      ios_command:
+        commands:
+        - command: configure terminal
+        - command: no crypto pki trustpoint {{ item.split(' ')[1] | regex_replace(':$', '') }}
+          prompt: '[yes/no]'
+          answer: 'yes'
+      loop: "{{ int_status_raw.stdout_lines[0] }}"
+      when: item.find('Trustpoint') != -1 and item.split(' ')[1].startswith("hub01")
+      register: var1
+      ignore_errors: True
+
+    - debug:
+        var: var1
+
+
+    - name: Create a new Trustpoint Hub01
+      cisco.ios.ios_config:
+        lines:
+        - enrollment url http://hub01.dcinex.com:18263/certsrv/mscep/mscep.dll
+        - revocation-check crl none
+        - auto-enroll 70
+        - enrollment mode ra
+        parents: crypto pki trustpoint hub01.dcinex.com:18263
+      register: var2
+      ignore_errors: True
+
+    - debug:
+        var: var2
+
+
+    - name: Ping hub01.dcinex.com
+      ios_command:
+        commands:
+        - command: ping hub01.dcinex.com
+      ignore_errors: True
+#
+    - name: Authentication with New CA hub01.dcinex.com:18263
+      ios_command:
+        commands:
+        - command: configure terminal
+        - command: crypto pki authenticate hub01.dcinex.com:18263
+          prompt: '[yes/no]'
+          answer: 'yes'
+      register: var3
+      ignore_errors: True
+
+    - debug:
+        var: var3
+
+    - name: Unshut the Tunnel 1
+      cisco.ios.ios_config:
+        lines:
+        - no shutdown
+        parents: interface Tunnel 1
+      register: var02
+
+    - debug:
+        var: var02
+
+
+
+    - name: Save Changes
+      ios_command:
+        commands:
+          - write memory
+      timeout:  180
+      register: save
+
+    - debug:
+        var: save
+
+    - name: save running to startup
+      cisco.ios.ios_config:
+        save_when: always
+      timeout:  180

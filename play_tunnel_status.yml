@@ -1,0 +1,30 @@
+- name: DMVPN Automation
+  connection:  network_cli
+  gather_facts:  no
+  hosts:  all
+  serial: 50
+#  max_fail_percentage: 100
+  tasks:
+
+    - name: show dmvpn status
+      ios_command:
+        commands:
+          - show dmvpn
+      register: int_dmvpn_raw
+      ignore_errors: True
+
+    - debug:
+        var: int_dmvpn_raw
+
+
+
+    - name: Copy to file
+      lineinfile:
+        line: "{{ inventory_hostname }}\t{{ item.split('10.243.31.254')[1] }}"
+        insertafter: EOF
+        path: "Tunnel_status.txt"
+      delegate_to: localhost
+      loop: "{{ int_dmvpn_raw.stdout_lines[0] }}"
+      when: '"185.29.36.209" in item'
+      throttle: 1
+      ignore_errors: True
