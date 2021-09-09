@@ -1,5 +1,5 @@
 # Ansible_IPSEC_RenewCertificate
-Using Ansible to renew certificates on thousands of Cisco IOS spokes
+Using Ansible to renew certificates on thousands of Cisco IOS spokes. A DMVPN architecture with 2 Hubs (2 Tunnels) and thousands of Spokes.
 
 
 ## Steps required for execution
